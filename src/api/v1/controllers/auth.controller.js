@@ -16,27 +16,44 @@ const authController = {
         .json({ success: false, message: 'Mật khẩu là bắt buộc' });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email hoặc mật khẩu không đúng',
-      });
-    }
+    try {
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email hoặc mật khẩu không đúng',
+        });
+      }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(400).json({
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email hoặc mật khẩu không đúng',
+        });
+      }
+
+      const accessToken = jwt.sign(
+        { userId: user._id },
+        process.env.SECRET_KEY
+      );
+
+      const userInfo = {
+        email: user.email,
+        fullName: user.fullName,
+      };
+      return res.status(200).json({
+        success: true,
+        message: 'Đăng nhập thành công',
+        accessToken,
+        user,
+      });
+    } catch (error) {
+      return res.status(500).json({
         success: false,
-        message: 'Email hoặc mật khẩu không đúng',
+        message: 'Đăng nhập không thành công, Vui lòng thử lại!',
       });
     }
-    const accessToken = jwt.sign({ userId: user._id }, process.env.SECRET_KEY);
-    return res.status(200).json({
-      success: true,
-      message: 'Đăng nhập thành công',
-      accessToken,
-    });
   },
   handleRegister: async (req, res) => {
     const { email, password, fullName } = req.body;
@@ -84,15 +101,21 @@ const authController = {
         { userId: newUser._id },
         process.env.SECRET_KEY
       );
+
+      const userInfo = {
+        email: newUser.email,
+        fullName: newUser.fullName,
+      };
       return res.status(200).json({
         success: true,
         message: 'Tạo tài khoản thành công',
         accessToken,
+        user: userInfo,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: 'Lỗi server',
+        message: 'Tạo tài khoản không thành công, vui lòng thử lại!',
       });
     }
   },
