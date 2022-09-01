@@ -46,7 +46,7 @@ const authController = {
         success: true,
         message: 'Đăng nhập thành công',
         accessToken,
-        user,
+        user: userInfo,
       });
     } catch (error) {
       return res.status(500).json({
