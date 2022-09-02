@@ -119,6 +119,30 @@ const authController = {
       });
     }
   },
+  getUser: async (req, res) => {
+    try {
+      const user = await User.findOne({
+        _id: req.userId,
+      });
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+        });
+      }
+      const userInfo = {
+        email: user.email,
+        fullName: user.fullName,
+      };
+      return res.status(200).json({
+        success: true,
+        user: userInfo,
+      });
+    } catch (error) {
+      res.json(401).json({
+        success: false,
+      });
+    }
+  },
 };
 
 module.exports = authController;
