@@ -6,6 +6,7 @@ const verifyToken = require('../middlewares/verifyToken');
 Router.post('/create', verifyToken, productController.createProduct);
 
 Router.get('/', productController.getAllProducts);
+Router.get('/category/:categorySlug', productController.getProductsByCategory);
 Router.get('/:slug', productController.getProductBySlug);
 
 Router.put('/:slug', productController.updateProduct);

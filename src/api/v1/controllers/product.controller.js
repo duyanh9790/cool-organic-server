@@ -1,5 +1,7 @@
 const Product = require('../models/product.model');
 
+const generateSlug = require('../utils/generateSlug');
+
 const productController = {
   createProduct: async (req, res) => {
     const {
@@ -10,6 +12,7 @@ const productController = {
       status,
       quantity,
       origin,
+      supplier,
       weight,
       unit,
       description,
@@ -22,6 +25,7 @@ const productController = {
       !status ||
       !quantity ||
       !origin ||
+      !supplier ||
       !weight ||
       !unit ||
       !price ||
@@ -33,16 +37,21 @@ const productController = {
     }
 
     try {
+      const slug = generateSlug(name);
+      const categorySlug = generateSlug(category);
       const product = await Product.create({
         name,
         category,
+        categorySlug,
         price,
         discount,
         status,
         quantity,
         origin,
+        supplier,
         weight,
         unit,
+        slug,
         description,
         userId: req.userId,
       });
@@ -60,13 +69,13 @@ const productController = {
         product,
       });
     } catch (error) {
+      console.log(error);
       res.status(500).json({
         success: false,
         message: 'Tạo sản phẩm thất bại, Vui lòng thử lại!',
       });
     }
   },
-
   getAllProducts: async (req, res) => {
     try {
       const products = await Product.find({});
@@ -90,6 +99,12 @@ const productController = {
   },
   getProductBySlug: async (req, res) => {
     const { slug } = req.params;
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy sản phẩm!',
+      });
+    }
     try {
       const product = await Product.findOne({ slug });
       if (!product) {
@@ -110,6 +125,35 @@ const productController = {
       });
     }
   },
+  getProductsByCategory: async (req, res) => {
+    const { categorySlug } = req.params;
+    if (!categorySlug) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn danh mục',
+      });
+    }
+    try {
+      const products = await Product.find({ categorySlug });
+      if (!products) {
+        return res.status(500).json({
+          success: false,
+          message:
+            'Không có sản phẩm nào trong danh mục này, Vui lòng thử lại!',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        products,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn danh mục',
+      });
+    }
+  },
   updateProduct: async (req, res) => {
     const { slug } = req.params;
     const {
@@ -120,6 +164,7 @@ const productController = {
       status,
       quantity,
       origin,
+      supplier,
       weight,
       unit,
       description,
@@ -143,18 +188,23 @@ const productController = {
     }
 
     try {
+      const newSlug = generateSlug(name);
+      const categorySlug = generateSlug(category);
       const product = await Product.findOneAndUpdate(
         { slug },
         {
           name,
           category,
+          categorySlug,
           price,
           discount,
           status,
           quantity,
           origin,
+          supplier,
           weight,
           unit,
+          slug: newSlug,
           description,
         },
         { new: true }

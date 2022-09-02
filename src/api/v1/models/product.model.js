@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const slug = require('mongoose-slug-generator');
-mongoose.plugin(slug);
 
 const { schemaOptions } = require('./modelOptions');
 
@@ -20,6 +18,10 @@ const ProductSchema = new Schema(
       type: String,
       required: true,
     },
+    categorySlug: {
+      type: String,
+      required: true,
+    },
     price: {
       type: Number,
       required: true,
@@ -27,6 +29,7 @@ const ProductSchema = new Schema(
     discount: {
       type: Number,
       required: true,
+      default: 0,
     },
     status: {
       type: String,
@@ -59,8 +62,8 @@ const ProductSchema = new Schema(
     },
     slug: {
       type: String,
-      slug: 'name',
       unique: true,
+      required: true,
     },
     createdAt: {
       type: Date,
