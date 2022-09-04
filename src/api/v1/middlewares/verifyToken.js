@@ -20,6 +20,7 @@ const verifyToken = async (req, res, next) => {
   try {
     const data = jwt.verify(token, process.env.SECRET_KEY);
     req.userId = data.userId;
+    req.role = data.role;
   } catch (error) {
     return res.status(401).json({
       success: false,

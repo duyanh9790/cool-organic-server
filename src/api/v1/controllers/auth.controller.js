@@ -1,6 +1,7 @@
-const User = require('../models/user.model');
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+
+const User = require('../models/user.model');
+const generateToken = require('../utils/generateToken');
 
 const authController = {
   handleLogin: async (req, res) => {
@@ -33,11 +34,6 @@ const authController = {
         });
       }
 
-      const accessToken = jwt.sign(
-        { userId: user._id },
-        process.env.SECRET_KEY
-      );
-
       const userInfo = {
         email: user.email,
         fullName: user.fullName,
@@ -45,7 +41,7 @@ const authController = {
       return res.status(200).json({
         success: true,
         message: 'Đăng nhập thành công',
-        accessToken,
+        accessToken: generateToken(user),
         user: userInfo,
       });
     } catch (error) {
@@ -97,11 +93,6 @@ const authController = {
         });
       }
 
-      const accessToken = jwt.sign(
-        { userId: newUser._id },
-        process.env.SECRET_KEY
-      );
-
       const userInfo = {
         email: newUser.email,
         fullName: newUser.fullName,
@@ -109,7 +100,7 @@ const authController = {
       return res.status(200).json({
         success: true,
         message: 'Tạo tài khoản thành công',
-        accessToken,
+        accessToken: generateToken(newUser),
         user: userInfo,
       });
     } catch (error) {
