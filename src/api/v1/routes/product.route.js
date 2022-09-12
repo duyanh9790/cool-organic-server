@@ -4,10 +4,11 @@ const productController = require('../controllers/product.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const isAdmin = require('../middlewares/isAdmin');
 
-Router.post('/create', verifyToken, isAdmin, productController.createProduct);
+Router.post('/', verifyToken, isAdmin, productController.createProduct);
 
 Router.get('/', productController.getAllProducts);
 Router.get('/category/:categorySlug', productController.getProductsByCategory);
+Router.get('/search', productController.searchProduct);
 Router.get('/:slug', productController.getProductBySlug);
 
 Router.put('/:slug', verifyToken, isAdmin, productController.updateProduct);

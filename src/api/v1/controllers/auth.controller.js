@@ -116,8 +116,9 @@ const authController = {
         _id: req.userId,
       });
       if (!user) {
-        return res.status(400).json({
+        return res.status(404).json({
           success: false,
+          message: 'Không tìm thấy người dùng!',
         });
       }
       const userInfo = {
@@ -129,8 +130,9 @@ const authController = {
         user: userInfo,
       });
     } catch (error) {
-      res.json(401).json({
+      res.json(500).json({
         success: false,
+        message: 'Lỗi máy chủ, Vui lòng thử lại!',
       });
     }
   },

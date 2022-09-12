@@ -77,19 +77,51 @@ const productController = {
     }
   },
   getAllProducts: async (req, res) => {
+    let { page, limit = 8 } = req.query;
     try {
-      const products = await Product.find({});
-      if (!products) {
-        return res.status(500).json({
-          success: false,
-          message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+      if (page) {
+        page = Number(page);
+        limit = Number(limit);
+        const skip = (page - 1) * limit;
+        const products = await Product.find()
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .skip(skip);
+
+        const totalProducts = await Product.countDocuments();
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        if (!products) {
+          return res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          products,
+          currentPage: page,
+          prePage: page > 1 ? page - 1 : null,
+          nextPage: page < totalPages ? page + 1 : null,
+          totalPages,
+          totalProducts,
+        });
+      } else {
+        const products = await Product.find({});
+
+        if (!products) {
+          return res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          products,
         });
       }
-
-      return res.status(200).json({
-        success: true,
-        products,
-      });
     } catch (error) {
       res.status(500).json({
         success: false,
@@ -127,6 +159,7 @@ const productController = {
   },
   getProductsByCategory: async (req, res) => {
     const { categorySlug } = req.params;
+    let { page, limit = 8 } = req.query;
     if (!categorySlug) {
       return res.status(400).json({
         success: false,
@@ -134,6 +167,45 @@ const productController = {
       });
     }
     try {
+      if (page) {
+        page = Number(page);
+        limit = Number(limit);
+        const skip = (page - 1) * limit;
+        const products = await Product.find({ categorySlug })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .skip(skip);
+
+        const totalProducts = await Product.countDocuments({ categorySlug });
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        if (!products) {
+          return res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+          });
+        }
+
+        if (products.length === 0) {
+          return res.status(200).json({
+            success: true,
+            message: 'Không có sản phẩm nào trong danh mục này!',
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          products,
+          currentPage: page,
+          prePage: page > 1 ? page - 1 : null,
+          nextPage: page < totalPages ? page + 1 : null,
+          totalPages,
+          totalProducts,
+        });
+      }
+
+      console.log('vẫn xuống');
+
       const products = await Product.find({ categorySlug });
       if (!products) {
         return res.status(500).json({
@@ -148,9 +220,9 @@ const productController = {
         products,
       });
     } catch (error) {
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
-        message: 'Vui lòng chọn danh mục',
+        message: 'Có lỗi xảy ra, vui lòng thử lại!',
       });
     }
   },
@@ -250,6 +322,37 @@ const productController = {
       return res.status(500).json({
         success: false,
         message: 'Xóa sản phẩm không thành công, Vui lòng thử lại!',
+      });
+    }
+  },
+  searchProduct: async (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập từ khóa tìm kiếm',
+      });
+    }
+    try {
+      const products = await Product.find({
+        name: { $regex: q, $options: 'i' },
+      });
+
+      if (products.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'Không có sản phẩm nào phù hợp',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        products,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không có sản phẩm nào phù hợp',
       });
     }
   },
