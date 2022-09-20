@@ -1,4 +1,5 @@
 const Product = require('../models/product.model');
+const Category = require('../models/category.model');
 
 const generateSlug = require('../utils/generateSlug');
 
@@ -10,7 +11,7 @@ const productController = {
       price,
       discount,
       status,
-      quantity,
+      sold,
       origin,
       supplier,
       weight,
@@ -23,7 +24,6 @@ const productController = {
       !category ||
       !discount ||
       !status ||
-      !quantity ||
       !origin ||
       !supplier ||
       !weight ||
@@ -39,14 +39,16 @@ const productController = {
     try {
       const slug = generateSlug(name);
       const categorySlug = generateSlug(category);
+      const salePrice = Math.round(price - price * (discount / 100));
       const product = await Product.create({
         name,
         category,
         categorySlug,
         price,
+        salePrice,
         discount,
         status,
-        quantity,
+        sold,
         origin,
         supplier,
         weight,
@@ -86,7 +88,10 @@ const productController = {
         const products = await Product.find()
           .sort({ createdAt: -1 })
           .limit(limit)
-          .skip(skip);
+          .skip(skip)
+          .select({
+            sold: 0,
+          });
 
         const totalProducts = await Product.countDocuments();
         const totalPages = Math.ceil(totalProducts / limit);
@@ -170,11 +175,16 @@ const productController = {
       if (page) {
         page = Number(page);
         limit = Number(limit);
+        let categoryName;
         const skip = (page - 1) * limit;
+
         const products = await Product.find({ categorySlug })
           .sort({ createdAt: -1 })
           .limit(limit)
-          .skip(skip);
+          .skip(skip)
+          .select({
+            sold: 0,
+          });
 
         const totalProducts = await Product.countDocuments({ categorySlug });
         const totalPages = Math.ceil(totalProducts / limit);
@@ -187,15 +197,16 @@ const productController = {
         }
 
         if (products.length === 0) {
-          return res.status(200).json({
-            success: true,
-            message: 'Không có sản phẩm nào trong danh mục này!',
-          });
+          const category = await Category.findOne({ categorySlug });
+          categoryName = category?.name || 'notFound';
+        } else {
+          categoryName = products[0].category;
         }
 
         return res.status(200).json({
           success: true,
           products,
+          categoryName,
           currentPage: page,
           prePage: page > 1 ? page - 1 : null,
           nextPage: page < totalPages ? page + 1 : null,
@@ -203,8 +214,6 @@ const productController = {
           totalProducts,
         });
       }
-
-      console.log('vẫn xuống');
 
       const products = await Product.find({ categorySlug });
       if (!products) {
@@ -226,6 +235,91 @@ const productController = {
       });
     }
   },
+  getTopSellingProducts: async (req, res) => {
+    let { page, limit = 8 } = req.query;
+    try {
+      if (page) {
+        page = Number(page);
+        limit = Number(limit);
+        const skip = (page - 1) * limit;
+        const products = await Product.find({})
+          .sort({ sold: -1 })
+          .limit(limit)
+          .skip(skip)
+          .select({
+            sold: 0,
+          });
+
+        const totalProducts = await Product.countDocuments({});
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        if (!products) {
+          return res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          products,
+          currentPage: page,
+          prePage: page > 1 ? page - 1 : null,
+          nextPage: page < totalPages ? page + 1 : null,
+          totalPages,
+          totalProducts,
+        });
+      }
+
+      const products = await Product.find({}).sort({ sold: -1 });
+      if (!products) {
+        return res.status(500).json({
+          success: false,
+          message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        products,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+      });
+    }
+  },
+  getRelatedProducts: async (req, res) => {
+    const { categorySlug, slug } = req.query;
+    if (!categorySlug || !slug) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng truyền dữ liệu bắt buộc!',
+      });
+    }
+    try {
+      const products = await Product.find({ categorySlug })
+        .select({
+          sold: 0,
+        })
+        .sort({ sold: -1 });
+
+      const relatedProducts = products
+        .filter((product) => product.slug !== slug)
+        .slice(0, 4); // Select 4 related products
+
+      return res.status(200).json({
+        success: true,
+        products: relatedProducts,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Có lỗi xảy ra, Vui lòng thử lại!',
+      });
+    }
+  },
   updateProduct: async (req, res) => {
     const { slug } = req.params;
     const {
@@ -234,7 +328,6 @@ const productController = {
       price,
       discount,
       status,
-      quantity,
       origin,
       supplier,
       weight,
@@ -247,7 +340,6 @@ const productController = {
       !category ||
       !discount ||
       !status ||
-      !quantity ||
       !origin ||
       !weight ||
       !unit ||
@@ -262,6 +354,7 @@ const productController = {
     try {
       const newSlug = generateSlug(name);
       const categorySlug = generateSlug(category);
+      const salePrice = Math.round(price - price * (discount / 100));
       const product = await Product.findOneAndUpdate(
         { slug },
         {
@@ -269,9 +362,9 @@ const productController = {
           category,
           categorySlug,
           price,
+          salePrice,
           discount,
           status,
-          quantity,
           origin,
           supplier,
           weight,
@@ -353,6 +446,93 @@ const productController = {
       return res.status(500).json({
         success: false,
         message: 'Không có sản phẩm nào phù hợp',
+      });
+    }
+  },
+  uploadSingleFile: async (req, res) => {
+    const { productId } = req.body;
+    if (!req.image) {
+      return res.status(500).json({
+        success: false,
+        message: 'Tải ảnh lên thất bại, Vui lòng thử lại!',
+      });
+    }
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu dữ liệu truyền lên!',
+      });
+    }
+
+    try {
+      const product = await Product.findOne({ _id: productId });
+      if (!product) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không tìm thấy sản phẩm để upload ảnh!',
+        });
+      }
+
+      await Product.updateOne(
+        {
+          _id: productId,
+        },
+        {
+          images: [...product.images, req.image],
+        }
+      );
+
+      return res.status(200).json({
+        success: true,
+        image: req.image,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Tải ảnh lên thất bại. Vui lòng thử lại!',
+      });
+    }
+  },
+  uploadMultipleFiles: async (req, res) => {
+    const { productId } = req.body;
+    if (!req.images) {
+      return res.status(500).json({
+        success: false,
+        message: 'Tải ảnh lên thất bại, Vui lòng thử lại!',
+      });
+    }
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu dữ liệu truyền lên!',
+      });
+    }
+
+    try {
+      const product = await Product.findOne({ _id: productId });
+      if (!product) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không tìm thấy sản phẩm để upload ảnh!',
+        });
+      }
+
+      await Product.updateOne(
+        {
+          _id: productId,
+        },
+        {
+          images: [...product.images, ...req.images],
+        }
+      );
+      return res.status(200).json({
+        success: true,
+        images: req.images,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Tải ảnh lên thất bại. Vui lòng thử lại!',
       });
     }
   },

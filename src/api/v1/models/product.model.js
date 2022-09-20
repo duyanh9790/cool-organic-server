@@ -26,6 +26,10 @@ const ProductSchema = new Schema(
       type: Number,
       required: true,
     },
+    salePrice: {
+      type: Number,
+      required: true,
+    },
     discount: {
       type: Number,
       required: true,
@@ -36,9 +40,15 @@ const ProductSchema = new Schema(
       required: true,
       enum: ['active', 'inactive'],
     },
-    quantity: {
+    sold: {
       type: Number,
       required: true,
+      default: 0,
+    },
+    images: {
+      type: Array,
+      required: true,
+      default: [],
     },
     origin: {
       type: String,
