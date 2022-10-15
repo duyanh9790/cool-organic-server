@@ -1,5 +1,6 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
+const productService = require('../services/product.service');
 
 const generateSlug = require('../utils/generateSlug');
 
@@ -79,21 +80,96 @@ const productController = {
     }
   },
   getAllProducts: async (req, res) => {
-    let { page, limit = 8 } = req.query;
+    let { page, limit = 8, price, date, salePrice, supplier } = req.query;
+    let sortFilter = {
+      createdAt: -1, // default sort by createdAt newest
+    };
+
+    let condition = {};
+    let combineCondition = {};
+
+    if (supplier) {
+      condition.supplier = supplier;
+      combineCondition = {
+        supplier: condition.supplier,
+      };
+    }
+
+    if (salePrice) {
+      if (!Array.isArray(salePrice)) {
+        salePrice = [salePrice];
+      }
+      condition.salePrice = productService.handleSortByPrice(salePrice);
+      combineCondition = {
+        ...combineCondition,
+        $or: condition.salePrice,
+      };
+      sortFilter = {
+        salePrice: 1,
+        ...sortFilter,
+      }; // sort ascending price by default if sort by price
+    } else {
+      condition.salePrice = [
+        {
+          salePrice: {
+            $gte: 0,
+          },
+        },
+      ];
+    }
+
+    if (price) {
+      switch (price) {
+        case 'desc':
+          sortFilter = {
+            salePrice: -1,
+            ...sortFilter,
+          };
+          break;
+        case 'asc':
+          sortFilter = {
+            salePrice: 1,
+            ...sortFilter,
+          };
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số price không hợp lệ!',
+          });
+      }
+    }
+    if (date) {
+      switch (date) {
+        case 'newest':
+          sortFilter.createdAt = -1;
+          break;
+        case 'oldest':
+          sortFilter.createdAt = 1;
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số date không hợp lệ!',
+          });
+      }
+    }
+
     try {
       if (page) {
         page = Number(page);
         limit = Number(limit);
         const skip = (page - 1) * limit;
-        const products = await Product.find()
-          .sort({ createdAt: -1 })
+        const products = await Product.find(combineCondition)
+          .sort(sortFilter)
           .limit(limit)
           .skip(skip)
           .select({
             sold: 0,
           });
 
-        const totalProducts = await Product.countDocuments();
+        const totalProducts = await Product.countDocuments(combineCondition);
+
         const totalPages = Math.ceil(totalProducts / limit);
 
         if (!products) {
@@ -106,14 +182,19 @@ const productController = {
         return res.status(200).json({
           success: true,
           products,
-          currentPage: page,
-          prePage: page > 1 ? page - 1 : null,
-          nextPage: page < totalPages ? page + 1 : null,
-          totalPages,
-          totalProducts,
+          pagination: {
+            currentPage: page,
+            prePage: page > 1 ? page - 1 : null,
+            nextPage: page < totalPages ? page + 1 : null,
+            totalPages,
+          },
         });
       } else {
-        const products = await Product.find({});
+        const products = await Product.find(combineCondition)
+          .sort(sortFilter)
+          .select({
+            sold: 0,
+          });
 
         if (!products) {
           return res.status(500).json({
@@ -143,9 +224,11 @@ const productController = {
       });
     }
     try {
-      const product = await Product.findOne({ slug });
+      const product = await Product.findOne({ slug }).select({
+        sold: 0,
+      });
       if (!product) {
-        return res.status(500).json({
+        return res.status(404).json({
           success: false,
           message: 'Không có sản phẩm này, Vui lòng thử lại!',
         });
@@ -164,7 +247,81 @@ const productController = {
   },
   getProductsByCategory: async (req, res) => {
     const { categorySlug } = req.params;
-    let { page, limit = 8 } = req.query;
+    let { page, limit = 8, price, date, salePrice, supplier } = req.query;
+    let sortFilter = {
+      createdAt: -1, // default sort by createdAt newest
+    };
+
+    let condition = {};
+    let combineCondition = {};
+
+    if (supplier) {
+      condition.supplier = supplier;
+      combineCondition = {
+        supplier: condition.supplier,
+      };
+    }
+
+    if (salePrice) {
+      if (!Array.isArray(salePrice)) {
+        salePrice = [salePrice];
+      }
+      condition.salePrice = productService.handleSortByPrice(salePrice);
+      combineCondition = {
+        ...combineCondition,
+        $or: condition.salePrice,
+      };
+      sortFilter = {
+        salePrice: 1,
+        ...sortFilter,
+      }; // sort ascending price by default if sort by price
+    } else {
+      condition.salePrice = [
+        {
+          salePrice: {
+            $gte: 0,
+          },
+        },
+      ];
+    }
+
+    if (price) {
+      switch (price) {
+        case 'desc':
+          sortFilter = {
+            salePrice: -1,
+            ...sortFilter,
+          };
+          break;
+        case 'asc':
+          sortFilter = {
+            salePrice: 1,
+            ...sortFilter,
+          };
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số price không hợp lệ!',
+          });
+      }
+    }
+    if (date) {
+      switch (date) {
+        case 'newest':
+          sortFilter.createdAt = -1;
+          break;
+        case 'oldest':
+          sortFilter.createdAt = 1;
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số date không hợp lệ!',
+          });
+      }
+    }
+
     if (!categorySlug) {
       return res.status(400).json({
         success: false,
@@ -178,15 +335,21 @@ const productController = {
         let categoryName;
         const skip = (page - 1) * limit;
 
-        const products = await Product.find({ categorySlug })
-          .sort({ createdAt: -1 })
+        const products = await Product.find({
+          categorySlug,
+          ...combineCondition,
+        })
+          .sort(sortFilter)
           .limit(limit)
           .skip(skip)
           .select({
             sold: 0,
           });
 
-        const totalProducts = await Product.countDocuments({ categorySlug });
+        const totalProducts = await Product.countDocuments({
+          categorySlug,
+          ...combineCondition,
+        });
         const totalPages = Math.ceil(totalProducts / limit);
 
         if (!products) {
@@ -196,10 +359,25 @@ const productController = {
           });
         }
 
-        if (products.length === 0) {
+        if (
+          products.length === 0 &&
+          Object.keys(combineCondition).length === 0
+        ) {
           const category = await Category.findOne({ categorySlug });
-          categoryName = category?.name || 'notFound';
-        } else {
+          if (!category) {
+            return res.status(400).json({
+              success: false,
+              categoryName: null,
+              message: 'Không tìm thấy danh mục!',
+            });
+          }
+          categoryName = category.name;
+          return res.status(404).json({
+            success: true,
+            categoryName,
+            message: 'Không có sản phẩm nào trong danh mục này!',
+          });
+        } else if (products.length !== 0) {
           categoryName = products[0].category;
         }
 
@@ -207,15 +385,20 @@ const productController = {
           success: true,
           products,
           categoryName,
-          currentPage: page,
-          prePage: page > 1 ? page - 1 : null,
-          nextPage: page < totalPages ? page + 1 : null,
-          totalPages,
-          totalProducts,
+          pagination: {
+            currentPage: page,
+            prePage: page > 1 ? page - 1 : null,
+            nextPage: page < totalPages ? page + 1 : null,
+            totalPages,
+          },
         });
       }
 
-      const products = await Product.find({ categorySlug });
+      const products = await Product.find({ categorySlug, ...combineCondition })
+        .sort(sortFilter)
+        .select({
+          sold: 0,
+        });
       if (!products) {
         return res.status(500).json({
           success: false,
@@ -229,6 +412,7 @@ const productController = {
         products,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra, vui lòng thử lại!',
@@ -236,13 +420,87 @@ const productController = {
     }
   },
   getTopSellingProducts: async (req, res) => {
-    let { page, limit = 8 } = req.query;
+    let { page, limit = 8, price, date, salePrice, supplier } = req.query;
+    let sortFilter = {
+      createdAt: -1, // default sort by createdAt newest
+    };
+
+    let condition = {};
+    let combineCondition = {};
+
+    if (supplier) {
+      condition.supplier = supplier;
+      combineCondition = {
+        supplier: condition.supplier,
+      };
+    }
+
+    if (salePrice) {
+      if (!Array.isArray(salePrice)) {
+        salePrice = [salePrice];
+      }
+      condition.salePrice = productService.handleSortByPrice(salePrice);
+      combineCondition = {
+        ...combineCondition,
+        $or: condition.salePrice,
+      };
+      sortFilter = {
+        salePrice: 1,
+        ...sortFilter,
+      }; // sort ascending price by default if sort by price
+    } else {
+      condition.salePrice = [
+        {
+          salePrice: {
+            $gte: 0,
+          },
+        },
+      ];
+    }
+
+    if (price) {
+      switch (price) {
+        case 'desc':
+          sortFilter = {
+            salePrice: -1,
+            ...sortFilter,
+          };
+          break;
+        case 'asc':
+          sortFilter = {
+            salePrice: 1,
+            ...sortFilter,
+          };
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số price không hợp lệ!',
+          });
+      }
+    }
+    if (date) {
+      switch (date) {
+        case 'newest':
+          sortFilter.createdAt = -1;
+          break;
+        case 'oldest':
+          sortFilter.createdAt = 1;
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Tham số date không hợp lệ!',
+          });
+      }
+    }
+
     try {
       if (page) {
         page = Number(page);
         limit = Number(limit);
         const skip = (page - 1) * limit;
-        const products = await Product.find({})
+        const products = await Product.find(combineCondition)
           .sort({ sold: -1 })
           .limit(limit)
           .skip(skip)
@@ -250,7 +508,7 @@ const productController = {
             sold: 0,
           });
 
-        const totalProducts = await Product.countDocuments({});
+        const totalProducts = await Product.countDocuments(combineCondition);
         const totalPages = Math.ceil(totalProducts / limit);
 
         if (!products) {
@@ -263,15 +521,20 @@ const productController = {
         return res.status(200).json({
           success: true,
           products,
-          currentPage: page,
-          prePage: page > 1 ? page - 1 : null,
-          nextPage: page < totalPages ? page + 1 : null,
-          totalPages,
-          totalProducts,
+          pagination: {
+            currentPage: page,
+            prePage: page > 1 ? page - 1 : null,
+            nextPage: page < totalPages ? page + 1 : null,
+            totalPages,
+          },
         });
       }
 
-      const products = await Product.find({}).sort({ sold: -1 });
+      const products = await Product.find(combineCondition)
+        .sort({ sold: -1 })
+        .select({
+          sold: 0,
+        });
       if (!products) {
         return res.status(500).json({
           success: false,
@@ -300,10 +563,10 @@ const productController = {
     }
     try {
       const products = await Product.find({ categorySlug })
+        .sort({ sold: -1 })
         .select({
           sold: 0,
-        })
-        .sort({ sold: -1 });
+        });
 
       const relatedProducts = products
         .filter((product) => product.slug !== slug)
@@ -429,10 +692,12 @@ const productController = {
     try {
       const products = await Product.find({
         name: { $regex: q, $options: 'i' },
+      }).select({
+        sold: 0,
       });
 
       if (products.length === 0) {
-        return res.status(200).json({
+        return res.status(404).json({
           success: true,
           message: 'Không có sản phẩm nào phù hợp',
         });
@@ -533,6 +798,27 @@ const productController = {
       return res.status(500).json({
         success: false,
         message: 'Tải ảnh lên thất bại. Vui lòng thử lại!',
+      });
+    }
+  },
+  test: async (req, res) => {
+    try {
+      const product = await Product.findOne({
+        slug: 'hoa-qua-test',
+      })
+        .select({
+          sold: 0,
+        })
+        .populate('category');
+
+      res.status(200).json({
+        success: true,
+        product,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không có sản phẩm nào phù hợp',
       });
     }
   },

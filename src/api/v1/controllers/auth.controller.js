@@ -35,8 +35,11 @@ const authController = {
       }
 
       const userInfo = {
-        email: user.email,
         fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
       return res.status(200).json({
         success: true,
@@ -94,9 +97,12 @@ const authController = {
       }
 
       const userInfo = {
-        email: newUser.email,
         fullName: newUser.fullName,
+        email: newUser.email,
+        role: newUser.role,
+        createdAt: newUser.createdAt,
       };
+
       return res.status(200).json({
         success: true,
         message: 'Tạo tài khoản thành công',
@@ -114,6 +120,8 @@ const authController = {
     try {
       const user = await User.findOne({
         _id: req.userId,
+      }).select({
+        password: 0,
       });
       if (!user) {
         return res.status(404).json({
@@ -121,13 +129,9 @@ const authController = {
           message: 'Không tìm thấy người dùng!',
         });
       }
-      const userInfo = {
-        email: user.email,
-        fullName: user.fullName,
-      };
       return res.status(200).json({
         success: true,
-        user: userInfo,
+        user,
       });
     } catch (error) {
       res.json(500).json({
