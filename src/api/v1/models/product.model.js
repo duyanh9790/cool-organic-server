@@ -87,4 +87,10 @@ const ProductSchema = new Schema(
   schemaOptions
 );
 
+ProductSchema.virtual('inventory', {
+  ref: 'Inventory',
+  localField: '_id',
+  foreignField: 'productId',
+});
+
 module.exports = mongoose.model('Product', ProductSchema);
