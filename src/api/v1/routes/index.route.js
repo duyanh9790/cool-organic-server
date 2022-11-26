@@ -4,11 +4,13 @@ const authRouter = require('./auth.route');
 const productRouter = require('./product.route');
 const categoryRouter = require('./category.route');
 const sortTypeRouter = require('./sortType.route');
+const cartRouter = require('./cart.route');
 
 Router.use('/users', userRouter);
 Router.use('/auth', authRouter);
 Router.use('/products', productRouter);
 Router.use('/categories', categoryRouter);
 Router.use('/sort-type', sortTypeRouter);
+Router.use('/cart', cartRouter);
 
 module.exports = Router;
