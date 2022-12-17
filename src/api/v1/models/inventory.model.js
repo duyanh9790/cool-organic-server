@@ -16,6 +16,11 @@ const InventorySchema = new Schema(
       type: Number,
       required: true,
       default: 0,
+      validate: {
+        validator: function (value) {
+          return value >= 0;
+        },
+      },
     },
     createdAt: {
       type: Date,

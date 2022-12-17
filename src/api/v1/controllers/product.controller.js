@@ -166,7 +166,8 @@ const productController = {
           .skip(skip)
           .select({
             sold: 0,
-          });
+          })
+          .populate('inventory', 'quantity');
 
         const totalProducts = await Product.countDocuments(combineCondition);
 
@@ -224,9 +225,11 @@ const productController = {
       });
     }
     try {
-      const product = await Product.findOne({ slug }).select({
-        sold: 0,
-      });
+      let product = await Product.findOne({ slug })
+        .select({
+          sold: 0,
+        })
+        .populate('inventory', 'quantity');
       if (!product) {
         return res.status(404).json({
           success: false,
@@ -344,7 +347,8 @@ const productController = {
           .skip(skip)
           .select({
             sold: 0,
-          });
+          })
+          .populate('inventory', 'quantity');
 
         const totalProducts = await Product.countDocuments({
           categorySlug,
@@ -359,10 +363,7 @@ const productController = {
           });
         }
 
-        if (
-          products.length === 0 &&
-          Object.keys(combineCondition).length === 0
-        ) {
+        if (products.length === 0) {
           const category = await Category.findOne({ categorySlug });
           if (!category) {
             return res.status(400).json({
@@ -372,12 +373,14 @@ const productController = {
             });
           }
           categoryName = category.name;
-          return res.status(404).json({
-            success: true,
-            categoryName,
-            message: 'Không có sản phẩm nào trong danh mục này!',
-          });
-        } else if (products.length !== 0) {
+          if (Object.keys(combineCondition).length === 0) {
+            return res.status(404).json({
+              success: true,
+              categoryName,
+              message: 'Không có sản phẩm nào trong danh mục này!',
+            });
+          }
+        } else {
           categoryName = products[0].category;
         }
 
@@ -506,7 +509,8 @@ const productController = {
           .skip(skip)
           .select({
             sold: 0,
-          });
+          })
+          .populate('inventory', 'quantity');
 
         const totalProducts = await Product.countDocuments(combineCondition);
         const totalPages = Math.ceil(totalProducts / limit);
@@ -566,7 +570,8 @@ const productController = {
         .sort({ sold: -1 })
         .select({
           sold: 0,
-        });
+        })
+        .populate('inventory', 'quantity');
 
       const relatedProducts = products
         .filter((product) => product.slug !== slug)
@@ -798,27 +803,6 @@ const productController = {
       return res.status(500).json({
         success: false,
         message: 'Tải ảnh lên thất bại. Vui lòng thử lại!',
-      });
-    }
-  },
-  test: async (req, res) => {
-    try {
-      const product = await Product.findOne({
-        slug: 'hoa-qua-test',
-      })
-        .select({
-          sold: 0,
-        })
-        .populate('category');
-
-      res.status(200).json({
-        success: true,
-        product,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Không có sản phẩm nào phù hợp',
       });
     }
   },

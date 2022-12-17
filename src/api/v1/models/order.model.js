@@ -6,11 +6,10 @@ const { schemaOptions } = require('./modelOptions');
 
 const OrderSchema = new Schema(
   {
-    products: [
+    cart: [
       {
         product: {
-          type: Schema.Types.ObjectId,
-          ref: 'Product',
+          type: Object,
           required: true,
         },
         quantity: {
@@ -51,6 +50,7 @@ const OrderSchema = new Schema(
     },
     comment: {
       type: String,
+      default: 'Không có ghi chú nào cho đơn hàng!',
     },
     shippingMethod: {
       type: String,
