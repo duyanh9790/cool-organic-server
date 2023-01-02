@@ -15,6 +15,6 @@ Router.delete(
   verifyToken,
   cartController.deleteProductInCart
 );
-Router.delete('/', verifyToken, cartController.deleteCart);
+Router.delete('/:id', verifyToken, cartController.deleteCart);
 
 module.exports = Router;

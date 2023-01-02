@@ -30,7 +30,7 @@ const cartController = {
     }
   },
   createCart: async (req, res) => {
-    const userId = req.userId;
+    const userId = req.body.userId || req.userId;
 
     try {
       const cart = await Cart.create({ userId, products: [] });
@@ -181,15 +181,10 @@ const cartController = {
     }
   },
   deleteCart: async (req, res) => {
-    const userId = req.userId;
-
+    const { id } = req.params;
+    console.log(id);
     try {
-      const cart = await Cart.findOneAndDelete({ userId }).populate({
-        path: 'products.product',
-        populate: {
-          path: 'inventory',
-        },
-      });
+      const cart = await Cart.findOneAndDelete({ userId: id });
       if (!cart) {
         return res.status(400).json({
           success: false,
@@ -198,7 +193,7 @@ const cartController = {
       }
       return res.status(200).json({
         success: true,
-        cart: cart.products,
+        message: 'Xóa giỏ hàng thành công',
       });
     } catch (error) {
       return res.status(500).json({

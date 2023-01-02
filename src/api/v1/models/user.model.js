@@ -19,6 +19,14 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
+    phone: {
+      type: String,
+      default: 'Hiện chưa cập nhật số điện thoại',
+    },
+    address: {
+      type: String,
+      default: 'Hiện chưa cập nhật địa chỉ',
+    },
     role: {
       type: String,
       required: true,
