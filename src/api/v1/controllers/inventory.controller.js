@@ -1,28 +1,62 @@
 const Inventory = require('../models/inventory.model');
 
 const inventoryController = {
-  addProductToInventory: async (req, res) => {
-    const { productId, quantity } = req.body;
+  addProductToInventory: async (productId, quantity) => {
     try {
       const product = await Inventory.create({
         productId,
         quantity,
       });
-      if (!product) {
-        return res.status(400).json({
+      return product;
+    } catch (error) {
+      return false;
+    }
+  },
+  getAllInventory: async (req, res) => {
+    let { page, limit } = req.query;
+
+    if (!page || !limit) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu dữ liệu truyền lên!',
+      });
+    }
+
+    try {
+      page = Number(page);
+      limit = Number(limit);
+      const skip = (page - 1) * limit;
+      const products = await Inventory.find({})
+        .populate('productId')
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip);
+
+      const totalProducts = await Inventory.countDocuments({});
+
+      const totalPages = Math.ceil(totalProducts / limit);
+
+      if (!products) {
+        return res.status(500).json({
           success: false,
-          message: 'Thêm sản phẩm vào kho không thành công',
+          message: 'Có lỗi xảy ra, Vui lòng thử lại!',
         });
       }
-      return res.status(201).json({
+
+      return res.status(200).json({
         success: true,
-        message: 'Thêm sản phẩm vào kho hàng thành công',
-        product,
+        products,
+        pagination: {
+          currentPage: page,
+          prePage: page > 1 ? page - 1 : null,
+          nextPage: page < totalPages ? page + 1 : null,
+          totalPages,
+        },
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: 'Lỗi server! Vui lòng thử lại sau',
+        message: 'Lấy sản phẩm trong kho hàng thất bại, Vui lòng thử lại sau!',
       });
     }
   },
@@ -30,14 +64,16 @@ const inventoryController = {
     const { id } = req.params;
     const { quantity } = req.body;
     try {
-      const product = await Inventory.findById(id);
+      const product = await Inventory.findOne({
+        productId: id,
+      }).populate('productId');
       if (!product) {
         return res.status(400).json({
           success: false,
           message: 'Cập nhật số lượng sản phẩm không thành công',
         });
       }
-      product.quantity += quantity;
+      product.quantity = Number(quantity);
       await product.save();
       return res.status(200).json({
         success: true,
@@ -45,6 +81,7 @@ const inventoryController = {
         product,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         success: false,
         message: 'Lỗi server! Vui lòng thử lại sau',
@@ -54,16 +91,18 @@ const inventoryController = {
   deleteProductInInventory: async (req, res) => {
     const { id } = req.params;
     try {
-      const product = await Inventory.findByIdAndDelete(id);
+      const product = await Inventory.findOneAndDelete({
+        productId: id,
+      }).populate('productId');
       if (!product) {
         return res.status(400).json({
           success: false,
-          message: 'Xóa sản phẩm khỏi kho không thành công',
+          message: 'Xóa sản phẩm khỏi kho hàng không thành công',
         });
       }
       return res.status(200).json({
         success: true,
-        message: 'Xóa sản phẩm khỏi kho thành công',
+        message: 'Xóa sản phẩm khỏi kho hàng thành công',
         product,
       });
     } catch (error) {

@@ -4,12 +4,7 @@ const inventoryController = require('../controllers/inventory.controller');
 const isAdmin = require('../middlewares/isAdmin');
 const verifyToken = require('../middlewares/verifyToken');
 
-Router.post(
-  '/',
-  verifyToken,
-  isAdmin,
-  inventoryController.addProductToInventory
-);
+Router.get('/', verifyToken, isAdmin, inventoryController.getAllInventory);
 
 Router.put(
   '/:id',
@@ -17,6 +12,7 @@ Router.put(
   isAdmin,
   inventoryController.updateQuantityOfProductInInventory
 );
+
 Router.delete(
   '/:id',
   verifyToken,
