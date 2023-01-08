@@ -8,6 +8,12 @@ Router.post('/', verifyToken, isAdmin, categoryController.createCategory);
 
 Router.get('/', categoryController.getAllCategories);
 Router.get('/:slug', categoryController.getCategoryBySlug);
+Router.get(
+  '/quantity/:slug',
+  verifyToken,
+  isAdmin,
+  categoryController.getQuantityProductsOfCategory
+);
 
 Router.put('/:slug', verifyToken, isAdmin, categoryController.updateCategory);
 Router.delete(
