@@ -6,9 +6,7 @@ const upLoadSingleFile = async (req, res, next) => {
 
   if (req.method === 'POST') {
     const file = req.file;
-    console.log('file', file);
     const image = await uploader(file);
-    console.log('image: ', image);
     req.image = image;
     next();
   } else {

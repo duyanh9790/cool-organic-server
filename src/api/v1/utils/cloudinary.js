@@ -12,9 +12,13 @@ exports.uploadImage = async (res, file, folder) => {
       resource_type: 'auto',
       public_id: `${Date.now()}`,
     });
+    const url = result.secure_url.replace(
+      '/upload',
+      '/upload/w_500,h_500,c_fill'
+    );
     const image = {
       public_id: result.public_id,
-      url: result.secure_url,
+      url,
     };
     fs.unlinkSync(file.path);
     return image;

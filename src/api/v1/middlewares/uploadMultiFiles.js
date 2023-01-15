@@ -7,7 +7,6 @@ const uploadMultiFiles = async (req, res, next) => {
   if (req.method === 'POST') {
     const images = [];
     const files = req.files;
-    console.log('files: ', files);
     for (const file of files) {
       const newImage = await uploader(file);
       images.push(newImage);
