@@ -1,6 +1,7 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
 const productService = require('../services/product.service');
+const inventoryController = require('./inventory.controller');
 
 const generateSlug = require('../utils/generateSlug');
 
@@ -11,20 +12,19 @@ const productController = {
       category,
       price,
       discount,
-      status,
-      sold,
       origin,
       supplier,
       weight,
       unit,
       description,
+      quantity,
     } = req.body;
 
     const isValidateFalse =
       !name ||
       !category ||
-      !discount ||
-      !status ||
+      discount === 'undefined' ||
+      quantity === 'undefined' ||
       !origin ||
       !supplier ||
       !weight ||
@@ -41,7 +41,11 @@ const productController = {
       const slug = generateSlug(name);
       const categorySlug = generateSlug(category);
       const salePrice = Math.round(price - price * (discount / 100));
-      const product = await Product.create({
+      let status = 'active';
+      if (quantity === 0) {
+        status = 'inactive';
+      }
+      let product = await Product.create({
         name,
         category,
         categorySlug,
@@ -49,7 +53,6 @@ const productController = {
         salePrice,
         discount,
         status,
-        sold,
         origin,
         supplier,
         weight,
@@ -60,6 +63,23 @@ const productController = {
       });
 
       if (!product) {
+        return res.status(500).json({
+          success: false,
+          message: 'Tạo sản phẩm thất bại, Vui lòng thử lại!',
+        });
+      }
+
+      const inventoryProduct = await inventoryController.addProductToInventory(
+        product._id,
+        quantity
+      );
+
+      product = {
+        ...product._doc,
+        quantity,
+      };
+
+      if (!inventoryProduct) {
         return res.status(500).json({
           success: false,
           message: 'Tạo sản phẩm thất bại, Vui lòng thử lại!',
@@ -595,24 +615,27 @@ const productController = {
       category,
       price,
       discount,
-      status,
       origin,
       supplier,
       weight,
       unit,
       description,
+      quantity,
+      images,
     } = req.body;
 
     const isValidateFalse =
       !name ||
       !category ||
-      !discount ||
-      !status ||
+      discount === 'undefined' ||
+      quantity === 'undefined' ||
       !origin ||
+      !supplier ||
       !weight ||
       !unit ||
       !price ||
-      !description;
+      !description ||
+      !images;
     if (isValidateFalse) {
       return res.status(400).json({
         message: 'Vui lòng nhập đủ tất cả các trường bắt buộc!',
@@ -623,6 +646,10 @@ const productController = {
       const newSlug = generateSlug(name);
       const categorySlug = generateSlug(category);
       const salePrice = Math.round(price - price * (discount / 100));
+      let status = 'active';
+      if (quantity === 0) {
+        status = 'inactive';
+      }
       const product = await Product.findOneAndUpdate(
         { slug },
         {
@@ -639,6 +666,7 @@ const productController = {
           unit,
           slug: newSlug,
           description,
+          images,
         },
         { new: true }
       );
@@ -656,6 +684,7 @@ const productController = {
         product,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         success: false,
         message:

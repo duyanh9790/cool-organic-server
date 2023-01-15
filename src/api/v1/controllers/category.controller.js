@@ -74,7 +74,7 @@ const categoryController = {
           });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
           categories,
           pagination: {
@@ -85,6 +85,14 @@ const categoryController = {
           },
         });
       }
+
+      const categories = await Category.find({}).sort({
+        createdAt: -1,
+      });
+      return res.status(200).json({
+        success: true,
+        categories,
+      });
     } catch (error) {
       console.log(error);
       return res.status(500).json({
