@@ -63,7 +63,7 @@ const OrderSchema = new Schema(
     shippingStatus: {
       type: String,
       required: true,
-      default: 'Chưa giao hàng',
+      default: 'Đang chuẩn bị đơn hàng',
     },
     paymentMethod: {
       type: String,

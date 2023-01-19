@@ -8,6 +8,14 @@ Router.post('/', verifyToken, orderController.createOrder);
 
 Router.get('/', verifyToken, isAdmin, orderController.getAllOrders);
 Router.get('/:orderId', verifyToken, orderController.getOrderByOrderId);
-Router.get('/user', verifyToken, orderController.getOrdersByUserId);
+Router.get('/user/:id', verifyToken, orderController.getOrdersByUserId);
+
+Router.patch(
+  '/:orderId',
+  verifyToken,
+  isAdmin,
+  orderController.updateStatusOrder
+);
+Router.delete('/:orderId', verifyToken, isAdmin, orderController.deleteOrder);
 
 module.exports = Router;
