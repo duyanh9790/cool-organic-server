@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 const dotenv = require('dotenv');
-const indexRouter = require('./api/v1/routes/index.route');
+const indexRouter = require('./src/api/v1/routes/index.route');
 
 dotenv.config();
 
