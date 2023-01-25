@@ -1,6 +1,6 @@
 {
   "version": 2,
   "name": "cool-organic",
-  "builds": [{ "src": "index.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/api", "dest": "/api/routes/index.route.js" }]
+  "builds": [{ "src": "./index.js", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/" }]
 }
